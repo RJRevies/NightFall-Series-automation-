@@ -1,0 +1,139 @@
+⭐ NightFall Project Build Guide
+Suspicious Network Connection Scanner (Python)
+Time: 1–3 hours
+Skill Level: Beginner–Intermediate
+Purpose: Build a lightweight threat hunting tool that detects unusual network behavior.
+
+🔥 PHASE 1 — Set Up the Project Folder (5 minutes)
+Step 1 — Create a new folder
+Action:
+Make a folder called:
+NightFall-Network-Scanner
+Reason:
+Keeps your project organized and ready for GitHub later.
+
+Step 2 — Create your Python file
+Inside the folder, create:
+scanner.py
+Reason:
+This is your main script. Keeping it simple helps you finish fast.
+
+🔥 PHASE 2 — Build the Data Collection Function (20–30 minutes)
+Step 3 — Add imports
+Paste this at the top of scanner.py:
+import subprocess
+import json
+from collections import Counter
+Reason:
+•	subprocess lets you call netstat
+•	json lets you save reports
+•	Counter helps detect repeated connections (beaconing)
+
+Step 4 — Add the function to collect network connections
+Paste this:
+def get_connections():
+    result = subprocess.check_output("netstat -ano", shell=True).decode()
+    lines = result.split("\n")
+    connections = []
+
+    for line in lines:
+        if "TCP" in line or "UDP" in line:
+            parts = line.split()
+            if len(parts) >= 5:
+                proto = parts[0]
+                local = parts[1]
+                remote = parts[2]
+                state = parts[3] if proto == "TCP" else "N/A"
+
+                connections.append({
+                    "protocol": proto,
+                    "local": local,
+                    "remote": remote,
+                    "state": state
+                })
+    return connections
+Commentary:
+This function is your eyes.
+It pulls live network connections from your machine — just like a SOC analyst checking for suspicious traffic.
+This is your SAN tracking phase:
+You’re observing the environment before making judgments.
+
+🔥 PHASE 3 — Add Threat Logic (20–30 minutes)
+Step 5 — Add the analysis function
+Paste this:
+def analyze_connections(conns):
+    suspicious = []
+    remote_ips = [c["remote"].split(":")[0] for c in conns if ":" in c["remote"]]
+    ip_counts = Counter(remote_ips)
+
+    for c in conns:
+        remote_ip = c["remote"].split(":")[0]
+        remote_port = c["remote"].split(":")[-1]
+
+        # Rule 1: Unusual ports
+        unusual_ports = ["4444", "1337", "5985"]
+        if remote_port in unusual_ports:
+            suspicious.append({"reason": "Unusual port", "connection": c})
+
+        # Rule 2: Beaconing behavior (repeated connections)
+        if ip_counts[remote_ip] > 5:
+            suspicious.append({"reason": "Possible beaconing", "connection": c})
+
+    return suspicious
+Commentary:
+This is where your hunter brain kicks in.
+You’re not just collecting data — you’re interpreting behavior:
+•	Unusual ports = attacker tools
+•	Repeated connections = beaconing (C2 behavior)
+This is your ǃGURA logic:
+Track movement → Identify patterns → Detect anomalies.
+
+🔥 PHASE 4 — Build the Main Function (10–15 minutes)
+Step 6 — Add the main execution block
+Paste this:
+def main():
+    print("[*] Collecting network connections...")
+    conns = get_connections()
+
+    print(f"[*] Found {len(conns)} connections. Analyzing...")
+    suspicious = analyze_connections(conns)
+
+    print("\n=== Suspicious Connections ===")
+    for s in suspicious:
+        print(f"\nReason: {s['reason']}")
+        print(s["connection"])
+
+    with open("nightfall_network_report.json", "w") as f:
+        json.dump(suspicious, f, indent=4)
+
+    print("\nReport saved to nightfall_network_report.json")
+
+if __name__ == "__main__":
+    main()
+Commentary:
+This ties everything together.
+•	Collect
+•	Analyze
+•	Report
+This is exactly how a SOC analyst or Threat Hunter works.
+And saving to JSON makes it portfolio ready.
+
+🔥 PHASE 5 — Run the Tool (5 minutes)
+Step 7 — Run the script
+In your terminal:
+python scanner.py
+Reason:
+This gives you your first live output — your first NightFall scan.
+
+🔥 PHASE 6 — Polish (10–20 minutes)
+Step 8 — Add a README.md
+Create a file called:
+README.md
+Add:
+•	What the tool does
+•	Why you built it
+•	How it ties to NightFall
+•	How it ties to ǃGURA
+•	How to run it
+Reason:
+This is what makes the project professional and GitHub ready.
